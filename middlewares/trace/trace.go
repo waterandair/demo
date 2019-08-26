@@ -4,6 +4,8 @@ import (
 	"github.com/fpay/gopress"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/waterandair/kratos/pkg/net/trace"
+	"net/http"
 )
 
 func TracerMiddleware() gopress.MiddlewareFunc {
@@ -30,11 +32,6 @@ func TracerMiddleware() gopress.MiddlewareFunc {
 			r = r.WithContext(opentracing.ContextWithSpan(r.Context(), span))
 			c.SetRequest(r)
 
-			// 将span注入到 http headers
-			if span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier, ) != nil {
-				panic("SpanContext Inject Error!")
-			}
-
 			if err := next(c); err != nil {
 				span.SetTag("error", true)
 				c.Error(err)
@@ -46,4 +43,16 @@ func TracerMiddleware() gopress.MiddlewareFunc {
 			return nil
 		}
 	}
+}
+
+// 将 span 注入到 http headers
+func Inject(span *opentracing.Span, carrier trace.Carrier) error {
+	s := *span
+	return s.Tracer().Inject(s.Context(), opentracing.HTTPHeaders, carrier)
+}
+
+// 从请求中提取 span
+func Extract(r *http.Request) (opentracing.SpanContext, error){
+	tracer := opentracing.GlobalTracer()
+	return tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
 }
