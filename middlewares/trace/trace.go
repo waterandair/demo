@@ -1,11 +1,11 @@
 package trace
 
 import (
+	"net/http"
+
 	"github.com/fpay/gopress"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"github.com/waterandair/kratos/pkg/net/trace"
-	"net/http"
 )
 
 func TracerMiddleware() gopress.MiddlewareFunc {
@@ -46,13 +46,13 @@ func TracerMiddleware() gopress.MiddlewareFunc {
 }
 
 // 将 span 注入到 http headers
-func Inject(span *opentracing.Span, carrier trace.Carrier) error {
+func Inject(span *opentracing.Span, carrier interface{}) error {
 	s := *span
 	return s.Tracer().Inject(s.Context(), opentracing.HTTPHeaders, carrier)
 }
 
 // 从请求中提取 span
-func Extract(r *http.Request) (opentracing.SpanContext, error){
+func Extract(r *http.Request) (opentracing.SpanContext, error) {
 	tracer := opentracing.GlobalTracer()
 	return tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
 }
