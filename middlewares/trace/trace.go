@@ -8,6 +8,8 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 )
 
+const TraceKey  = "opentracing-context-key"
+
 func TracerMiddleware() gopress.MiddlewareFunc {
 	return func(next gopress.HandlerFunc) gopress.HandlerFunc {
 		return func(c gopress.Context) error {
@@ -32,6 +34,8 @@ func TracerMiddleware() gopress.MiddlewareFunc {
 			r = r.WithContext(opentracing.ContextWithSpan(r.Context(), span))
 			c.SetRequest(r)
 
+			c.Set(TraceKey, span)
+
 			if err := next(c); err != nil {
 				span.SetTag("error", true)
 				c.Error(err)
@@ -55,4 +59,12 @@ func Inject(span *opentracing.Span, carrier interface{}) error {
 func Extract(r *http.Request) (opentracing.SpanContext, error) {
 	tracer := opentracing.GlobalTracer()
 	return tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+}
+
+func ExtractSpan(c gopress.Context) opentracing.Span {
+	span := c.Get(TraceKey)
+	if span == nil {
+		return nil
+	}
+	return span.(opentracing.Span)
 }
