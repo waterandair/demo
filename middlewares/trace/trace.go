@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/fpay/gopress"
@@ -67,4 +68,9 @@ func ExtractSpan(c gopress.Context) opentracing.Span {
 		return nil
 	}
 	return span.(opentracing.Span)
+}
+
+func WithSpan(c gopress.Context, ctx context.Context) context.Context{
+	span := ExtractSpan(c)
+	return opentracing.ContextWithSpan(ctx, span)
 }
